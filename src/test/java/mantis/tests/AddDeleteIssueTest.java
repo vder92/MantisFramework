@@ -1,5 +1,6 @@
 package mantis.tests;
 
+import mantis.pages.MainPage;
 import mantis.pages.MantisSite;
 import org.assertj.core.api.SoftAssertions;
 import org.junit.jupiter.api.Test;
@@ -20,49 +21,49 @@ public class AddDeleteIssueTest extends BaseTest {
     public MantisSite mantisSite;
 
     @Test
-    public void login() {
-//        driver.findElement(By.id("username")).sendKeys("admin");
-//        driver.findElement(By.id("username")).sendKeys(Keys.ENTER);
-//
-//        driver.findElement(By.id("password")).sendKeys("admin20");
-//        driver.findElement(By.id("password")).sendKeys(Keys.ENTER);
+    public void addDeleteIssue() {
         mantisSite = new MantisSite(driver);
         mantisSite.login("admin", "admin20");
 
         //проверка прохождения логина
-        String currentUrl = driver.getCurrentUrl();
-        assertEquals("https://academ-it.ru/mantisbt/my_view_page.php", currentUrl);
+        String loginPageUrl = mantisSite.getPageURL();
+        assertEquals("https://academ-it.ru/mantisbt/my_view_page.php", loginPageUrl);
 
         //проверка открытия страницы report issue
-        //driver.findElement(By.xpath("//*[@href='bug_report_page.php']")).click();
         mantisSite.reportIssuePage();
-        String pageIssueUrl = driver.getCurrentUrl();
-        assertEquals("https://academ-it.ru/mantisbt/bug_report_page.php", pageIssueUrl);
+        String issuePageUrl = mantisSite.getPageURL();
+        assertEquals("https://academ-it.ru/mantisbt/bug_report_page.php", issuePageUrl);
 
         //заполнение формы issue
-        driver.findElement(By.id("summary")).sendKeys("sum_test");
         String sumTest = "sum_test";
-        driver.findElement(By.id("description")).sendKeys("desc_test");
+        mantisSite.fillSum("sum_test");
+        //assertEquals(sumTest, mantisSite.getIssuePage().getSummary());
+
         String descTest = "desc_test";
-        driver.findElement(By.xpath("//*[@value='Submit Issue']")).click();
+        mantisSite.fillDesc("desc_test");
+        //assertEquals(descTest, mantisSite.getIssuePage().getDescription());
+
+        //Submit issue
+        mantisSite.submitIssue();
+
         //ожидание загрузки страницы с Issues
         driver.manage().timeouts().implicitlyWait(4, TimeUnit.SECONDS);
 
         SoftAssertions softAssert = new SoftAssertions();
 
-        // поиск добавленного бага
-        WebElement summary = driver.findElement(By.xpath("//tbody//tr[1]/td[11]"));
-        softAssert.assertThat(sumTest).isEqualTo(summary.getText());
+        // проверка что баг есть в списке
+        softAssert.assertThat(sumTest).isEqualTo(mantisSite.getMainPage().getSummary());
 
         //удаление бага
-        driver.findElement(By.xpath("//tbody//tr[1]/td[1]//label")).click();
-        driver.findElement(By.xpath("//input[@value='OK']")).sendKeys("Delete");
-        Select dropDown = new Select(driver.findElement(By.xpath("//*[@name='action']")));
-        dropDown.selectByVisibleText("Delete");
-        driver.findElement(By.xpath("//*[@value='OK']")).click();
-        driver.findElement(By.xpath("//input[@value='Delete Issues']")).click();
-        WebElement nextBug = driver.findElement(By.xpath("//tbody//tr[1]/td[11]"));
-        softAssert.assertThat(sumTest).isNotEqualTo(nextBug.getText());
+        mantisSite.chooseIssue(); //чек-бокс отмечен
+        mantisSite.chooseDropDown(); //клик выпадающего списка
+        mantisSite.chooseDelete(); //выбор опции Delete
+        mantisSite.submitDelete();  //нажатие ОК после выбора Delete
+        mantisSite.confirmDelete();  //нажатие кнопки Delete Issue
+
+        //проверка что удаленного бага нет в списке
+        softAssert.assertThat(sumTest).isNotEqualTo(mantisSite.getMainPage().getSummary());
+
 
     }
 
